@@ -1,0 +1,54 @@
+#!/usr/bin/env python
+
+#%# family=contrib
+
+import re, sys, os, serial
+
+def show_autoconf():
+    print "no"
+    
+def show_config():
+    if sys.argv[0][-1] == 'w':
+        print """graph_title Power consumption
+graph_category currentcost
+graph_vlabel watts
+%s.label watts""" % labels[sys.argv[0][-1]]
+
+    elif sys.argv[0][-1] == 't':
+        print """graph_title Temperature
+graph_category currentcost
+graph_vlabel C
+%s.label temperature""" % labels[sys.argv[0][-1]]
+    
+cmds = {
+    'autoconf': show_autoconf,
+    'config': show_config,
+}
+
+labels = {
+    't': 'temperature',
+    'w': 'watts',
+}
+
+if __name__ == '__main__':
+    if len(sys.argv) > 1 and sys.argv[1] != '':
+        cmds[sys.argv[1]]()
+        
+    else:
+        p = re.compile(r'<hr>(?P<h>\d{2})</hr><min>(?P<m>\d{2})</min><sec>(?P<s>\d{2})</sec>.+<ch1><watts>(?P<w>\d{5})<.+<tmpr>(?P<t>[^>]+)<')
+    
+        ser = serial.Serial(os.environ['port'], 2400, timeout=10)
+    
+        try:
+            while(1):
+                m = p.search(ser.readline())
+                if m:
+                    print "%s.value %s" % (labels[sys.argv[0][-1]], m.group(sys.argv[0][-1]).lstrip('0'))
+                    break
+                
+        except KeyboardInterrupt:
+            print
+
+        finally:
+            ser.close()
+
